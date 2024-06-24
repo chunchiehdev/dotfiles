@@ -59,6 +59,7 @@
 	sb = show-branch
 	sh = stash
 	sha = stash apply
+	shc = stash clear
 	shl = stash list
 	shp = stash pop
 	shu = stash -u
