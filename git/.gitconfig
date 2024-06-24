@@ -29,7 +29,8 @@
 	d = diff
 	dc = diff --cached
 	f = fetch -p --all
-	fixup = "!f() { TARGET=$(git rev-parse \"$1\"); git commit --fixup=$TARGET ${@:2} && EDITOR=true git rebase -i --autostash --autosquash $TARGET^; }; f"
+	# fixup = "!f() { TARGET=$(git rev-parse \"$1\"); git commit --fixup=$TARGET ${@:2} && EDITOR=true git rebase -i --autostash --autosquash $TARGET^; }; f"
+	fixup = "!f() { TARGET=$(git rev-parse $1); shift; git commit --fixup=$TARGET \"$@\" && EDITOR=true git rebase -i --autostash --autosquash $TARGET^; }; f"
 	for = for-each-ref --sort=-committerdate refs/heads/	
 	ft = fetch --prune origin "+refs/tags/*:refs/tags/*"
 	l = log --decorate
