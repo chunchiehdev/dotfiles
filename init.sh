@@ -2,7 +2,14 @@
 # Script to set up a development environment by installing dependencies, cloning a dotfiles repository, and configuring SSH.
 # Last modified: 2025-03-03 by chunchiehdev
 
-set -e
+# 添加調試輸出（檢測執行流程）
+debug_log() {
+    echo -e "${BLUE}DEBUG: $1${NC}" >&2
+}
+
+set +e
+
+trap 'echo -e "${RED}Error occurred at line $LINENO. Command: $BASH_COMMAND${NC}" >&2' ERR
 
 REPO_URL="https://github.com/chunchiehdev/dotfiles.git"
 REPO_PATH="$HOME/dotfiles"
@@ -14,10 +21,14 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+debug_log "Script started"
+
 if [ -t 0 ]; then
     INTERACTIVE=true
+    debug_log "Running in interactive mode"
 else
     INTERACTIVE=false
+    debug_log "Running in non-interactive mode"
     echo -e "${YELLOW}======================= WARNING =======================${NC}"
     echo -e "${YELLOW}This script contains interactive steps.${NC}"
     echo -e "${YELLOW}For best experience, please download and run directly:${NC}"
@@ -74,8 +85,11 @@ else
     exit 1
 fi
 
+debug_log "OS check and package installation completed"
+
 # Function to set up SSH key
 setup_ssh_key() {
+    debug_log "Entering setup_ssh_key function"
     echo -e "${YELLOW}Checking SSH key...${NC}"
     
     if [ ! -f "$HOME/.ssh/id_ed25519" ]; then
@@ -216,10 +230,15 @@ setup_ssh_key() {
             echo -e "${GREEN}Existing SSH key works with GitHub!${NC}"
         fi
     fi
+    
+    debug_log "Exiting setup_ssh_key function"
+    # 明確返回成功狀態
+    return 0
 }
 
 # Function to update repository URL from HTTPS to SSH
 update_repo_url() {
+    debug_log "Entering update_repo_url function"
     if [ -d "$REPO_PATH" ]; then
         cd "$REPO_PATH"
         CURRENT_URL=$(git remote get-url origin)
@@ -234,32 +253,58 @@ update_repo_url() {
             echo -e "${GREEN}Updated repository URL to: $SSH_URL${NC}"
         fi
     fi
+    debug_log "Exiting update_repo_url function"
 }
 
+debug_log "About to set up SSH key"
 # Set up SSH key before cloning
 setup_ssh_key
+debug_log "SSH key setup completed"
 
 # Define SSH URL for cloning
 REPO_URL_SSH="git@github.com:chunchiehdev/dotfiles.git"
 
+debug_log "About to clone repository"
 # Clone or update dotfiles repository
 echo -e "${YELLOW}Cloning dotfiles repository...${NC}"
 if [ -d "$REPO_PATH" ]; then
     echo -e "${GREEN}Dotfiles repository already exists, updating...${NC}"
     cd "$REPO_PATH"
     git pull
+    git_result=$?
+    debug_log "git pull result: $git_result"
 else
     echo -e "${GREEN}Cloning new dotfiles repository...${NC}"
     # Attempt cloning with SSH URL, fallback to HTTPS if SSH fails
-    if ! git clone "$REPO_URL_SSH" "$REPO_PATH"; then
+    git clone "$REPO_URL_SSH" "$REPO_PATH"
+    git_result=$?
+    debug_log "git clone with SSH result: $git_result"
+    
+    if [ $git_result -ne 0 ]; then
         echo -e "${YELLOW}SSH cloning failed, falling back to HTTPS...${NC}"
         git clone "$REPO_URL" "$REPO_PATH"
+        git_result=$?
+        debug_log "git clone with HTTPS result: $git_result"
+        
+        if [ $git_result -ne 0 ]; then
+            echo -e "${RED}Error: Failed to clone repository.${NC}"
+        fi
     fi
 fi
 
-# Ensure repository uses SSH URL
-update_repo_url
+debug_log "Repository clone/update phase completed"
 
+# Ensure repository uses SSH URL
+if [ -d "$REPO_PATH" ]; then
+    debug_log "About to update repository URL"
+    update_repo_url
+    debug_log "Repository URL update completed"
+else
+    echo -e "${RED}Repository directory does not exist, skipping URL update${NC}"
+    debug_log "Repository directory not found, URL update skipped"
+fi
+
+debug_log "About to run Ansible playbook phase"
 # Run Ansible playbook (uncomment and adjust path as needed)
 echo -e "${YELLOW}Running Ansible playbook...${NC}"
 # cd "$REPO_PATH/ansible"
@@ -267,3 +312,4 @@ echo -e "${YELLOW}Running Ansible playbook...${NC}"
 
 echo -e "${GREEN}Environment setup complete!${NC}"
 echo -e "${YELLOW}Please restart your terminal to apply changes${NC}"
+debug_log "Script completed successfully"
