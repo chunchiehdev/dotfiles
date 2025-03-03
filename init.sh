@@ -63,8 +63,8 @@ fi
 
 # Run Ansible playbook
 echo -e "${YELLOW}Running Ansible playbook...${NC}"
-cd "$REPO_PATH/ansible"
-ansible-playbook setup.yml -K
+# cd "$REPO_PATH/ansible"
+# ansible-playbook setup.yml -K
 
 echo -e "${GREEN}Environment setup complete!${NC}"
 echo -e "${YELLOW}Please restart your terminal to apply changes${NC}"
