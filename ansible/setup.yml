@@ -2,7 +2,7 @@
 - name: Setup Development Environment
   hosts: localhost
   connection: local
-  become: true
+  become: false  
   
   vars:
     home_dir: "{{ ansible_env.HOME }}"

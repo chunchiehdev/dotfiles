@@ -3,6 +3,7 @@
   apt:
     name: git
     state: present
+  become: true  
   when: is_linux and ansible_os_family == "Debian"
 
 - name: Install git (macOS)
