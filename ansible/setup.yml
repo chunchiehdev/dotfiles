@@ -15,11 +15,12 @@
       apt:
         update_cache: yes
       when: is_linux and ansible_os_family == "Debian"
-      
+      become: true  
+
     - name: Update homebrew (macOS)
       command: brew update
       when: is_macos
-      become: false
+      become: true
 
   roles:
     - { role: common, tags: ['common'] }
