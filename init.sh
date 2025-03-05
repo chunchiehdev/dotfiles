@@ -1,6 +1,9 @@
 #!/bin/bash
 # Script to set up a development environment.
 # Last modified: 2025-03-05
+# curl -s https://raw.githubusercontent.com/chunchiehdev/dotfiles/main/init.sh -o init.sh
+# chmod +x init.sh
+# ./init.sh
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -72,12 +75,12 @@ get_confirmation() {
     local result=""
     
     while true; do
-        echo -e "${YELLOW}$prompt${NC}"
-        read -r result
-        if [ -z "$result" ]; then
+        read -r -p "$(echo -e "${YELLOW}$prompt${NC} ")" result
+        result=$(echo "$result" | tr '[:upper:]' '[:lower:]')  # 轉換輸入為小寫
+        if [[ -z "$result" ]]; then
             result="$default_value"
         fi
-        if [ -z "$valid_values" ] || [[ "$valid_values" == *"$result"* ]]; then
+        if [[ " $valid_values " == *" $result "* ]]; then
             echo "$result"
             return 0
         else
@@ -113,11 +116,12 @@ setup_ssh_key() {
         echo -e "${RED}=============================================${NC}\n"
         
         confirmation=""
-        while [ "$confirmation" != "yes" ]; do
+        while [[ "$confirmation" != "yes" ]]; do
             confirmation=$(get_confirmation "After adding the key, type 'yes' and press Enter to continue:" "no" "yes")
-            if [ "$confirmation" != "yes" ]; then
-                echo -e "${RED}Please enter 'yes' to confirm you have added the SSH key:${NC}"
+            if [[ "$confirmation" == "yes" ]]; then
+            break  # 確保一旦輸入 yes 立即結束迴圈
             fi
+            echo -e "${RED}Please enter 'yes' to confirm you have added the SSH key:${NC}"
         done
         USE_SSH=true
     else
