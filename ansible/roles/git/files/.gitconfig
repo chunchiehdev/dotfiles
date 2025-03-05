@@ -1,0 +1,85 @@
+[user]
+	name = Jack Kuo
+	email = chunchiehdev@gmail.com
+[alias]
+	a = add
+	ap = add -p
+	as = "!git add -A; git status"
+	au = add -u
+	b = branch
+	ba = branch -a
+	bd = branch -D
+	br = branch -r
+	bl = blame
+	bm = branch -m
+	c = commit
+	ca = commit --amend -m # modify the message of the last commit without changing the commit message
+	can = commit --amend --no-edit 
+	cf = commit --fixup=HEAD
+	cl = clean
+	clf = clean -f
+	cld = clean -d
+	clfd = clean -fd
+	cm = commit -m
+	co = checkout
+	cob = checkout -b
+	cp = cherry-pick
+	cpa = cherry-pick --abort
+	cpc = cherry-pick --continue
+	d = diff
+	dc = diff --cached
+	f = fetch -p --all
+	# fixup = "!f() { TARGET=$(git rev-parse \"$1\"); git commit --fixup=$TARGET ${@:2} && EDITOR=true git rebase -i --autostash --autosquash $TARGET^; }; f"
+	fixup = "!f() { TARGET=$(git rev-parse $1); shift; git commit --fixup=$TARGET \"$@\" && EDITOR=true git rebase -i --autostash --autosquash $TARGET^; }; f"
+	for = for-each-ref --sort=-committerdate refs/heads/	
+	ft = fetch --prune origin "+refs/tags/*:refs/tags/*"
+	l = log --decorate
+	last = show -1 --pretty=fuller --stat
+	lastdiff = show -1 --pretty=fuller --patch
+	lp = log --decorate --oneline --first-parent
+	lt = log --decorate --oneline --graph
+	lg1 = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)' --all
+	lg2 = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(reset) %C(bold green)(%ar)%C(reset)%C(auto)%d%C(reset)%n''          %C(white)%s%C(reset) %C(dim white)- %an%C(reset)'
+	lg = lg1
+	m = merge
+	ma = merge --abort
+	mnf = merge --no-ff
+	mt = mergetool
+	unstage = restore --staged .
+	ph = push
+	phh = push origin HEAD
+	pht = push origin --tags
+	pl = pull
+	r = rebase
+	ra = rebase --abort
+	rc = rebase --continue
+	ria = rebase --interactive --autosquash
+	rs = reset
+	rsh = reset HEAD^ --hard
+	s = status
+	sb = show-branch
+	sh = stash
+	sha = stash apply
+	shc = stash clear
+	shl = stash list
+	shp = stash pop
+	shu = stash -u
+	sl = log --graph --simplify-by-decoration --pretty=format:'%D %C(dim)(%cr)' --all --not --tags
+	ss = show
+	t = tag
+	ta = tag -a
+	td = tag -d
+
+	# Find the ancestor and merge bases of sets of commits (@leeb)
+	oldest-ancestor = !zsh -c 'diff --old-line-format='' --new-line-format='' <(git rev-list --first-parent "${1:-master}") <(git rev-list --first-parent "${2:-HEAD}") | head -1'
+	all-merge-bases = "!f() { eval $(git for-each-ref --shell --format='git merge-base master %(refname);' refs/heads) | sort | uniq; }; f"
+	common-merge-base = "!f() { git rev-list --no-walk $(git all-merge-bases) | tail -n1; }; f"
+
+	# Find branches with commit, tags with commit, comments with code, and commits with message (@mathias)
+  	fb = "!f() { git branch -a --contains $1; }; f"
+  	ft = "!f() { git describe --always --contains $1; }; f"
+	fc = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short -S$1; }; f"
+	fm = "!f() { git log --pretty=format:'%C(yellow)%h  %Cblue%ad  %Creset%s%Cgreen  [%cn] %Cred%d' --decorate --date=short --grep=$1; }; f"
+ 	# Stage commits by chunk (@skwp)
+[push]
+    default = current

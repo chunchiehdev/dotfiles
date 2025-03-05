@@ -1,0 +1,58 @@
+---
+- name: Install zsh (Debian/Ubuntu)
+  apt:
+    name: zsh
+    state: present
+  when: is_linux and ansible_os_family == "Debian"
+
+- name: Install zsh (macOS)
+  homebrew:
+    name: zsh
+    state: present
+  when: is_macos
+  become: false
+
+- name: Check if Oh My Zsh is installed
+  stat:
+    path: "{{ home_dir }}/.oh-my-zsh"
+  register: oh_my_zsh
+  become: false
+
+- name: Install Oh My Zsh
+  shell: sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  when: not oh_my_zsh.stat.exists
+  become: false
+
+- name: Install zsh-autosuggestions
+  git:
+    repo: https://github.com/zsh-users/zsh-autosuggestions
+    dest: "{{ home_dir }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
+  become: false
+  when: not oh_my_zsh.stat.exists
+
+- name: Install zsh-syntax-highlighting
+  git:
+    repo: https://github.com/zsh-users/zsh-syntax-highlighting.git
+    dest: "{{ home_dir }}/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting"
+  become: false
+  when: not oh_my_zsh.stat.exists
+
+- name: Create zsh config symlink if exists
+  file:
+    src: "{{ playbook_dir }}/roles/zsh/files/.zshrc"  
+    dest: "{{ home_dir }}/.zshrc"
+    state: link
+    force: yes
+  become: false
+  when: dotfiles_dir + '/zsh/.zshrc' is file
+
+- name: Change default shell to zsh
+  user:
+    name: "{{ ansible_user_id }}"
+    shell: /bin/zsh
+  when: is_linux
+
+- name: Change default shell to zsh (macOS)
+  shell: chsh -s /bin/zsh
+  when: is_macos
+  become: false

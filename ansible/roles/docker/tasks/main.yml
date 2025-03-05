@@ -1,0 +1,102 @@
+---
+- name: Install Docker (Linux)
+  block:
+    - name: Check if Ubuntu version is supported
+      fail:
+        msg: "Docker Engine only supports Ubuntu Oracular 24.10, Noble 24.04 LTS, Jammy 22.04 LTS, or Focal 20.04 LTS"
+      when: 
+        - ansible_os_family == "Debian"
+        - ansible_distribution == "Ubuntu"
+        - ansible_distribution_release not in ["oracular", "noble", "jammy", "focal"]
+
+    - name: Warn if not pure Ubuntu
+      debug:
+        msg: "Warning: Docker Engine is not officially supported on Ubuntu derivative distributions (e.g., Linux Mint)"
+      when: 
+        - ansible_os_family == "Debian"
+        - ansible_distribution != "Ubuntu"
+
+    - name: Uninstall conflicting Docker packages
+      apt:
+        name:
+          - docker.io
+          - docker-compose
+          - docker-compose-v2
+          - docker-doc
+          - podman-docker
+          - containerd
+          - runc
+        state: absent
+        purge: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure iptables is used instead of nftables
+      shell: update-alternatives --set iptables /usr/sbin/iptables-legacy
+      when: ansible_os_family == "Debian"
+
+    - name: Install prerequisites for Docker repository
+      apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Create keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker GPG key
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+      when: ansible_os_family == "Debian"
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+      when: ansible_os_family == "Debian"
+      vars:
+        dpkg_architecture:
+          command: dpkg --print-architecture
+
+    - name: Install Docker packages
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Verify Docker installation
+      command: docker run --rm hello-world
+      register: docker_test
+      changed_when: false
+      failed_when: docker_test.rc != 0
+      when: ansible_os_family == "Debian"
+
+    - name: Add user to docker group
+      user:
+        name: "{{ ansible_user_id }}"
+        groups: docker
+        append: yes
+      when: 
+        - ansible_os_family == "Debian"
+        - "'docker' in ansible_facts.groups"
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker Desktop (macOS)
+  homebrew_cask:
+    name: docker
+    state: present
+  when: ansible_os_family == "Darwin"
+  become: false

@@ -89,6 +89,26 @@ get_confirmation() {
     done
 }
 
+run_ansible_playbook() {
+    echo -e "${YELLOW}Running Ansible playbook...${NC}"
+    
+    if [ ! -d "$REPO_PATH/ansible" ]; then
+        echo -e "${RED}Error: Ansible directory does not exist! Please make sure the repository has been successfully cloned.${NC}"
+        exit 1
+    fi
+
+    cd "$REPO_PATH/ansible"
+    
+    # Ensure `ansible-playbook` is available
+    if ! command -v ansible-playbook &> /dev/null; then
+        echo -e "${RED}Error: ansible-playbook is not installed, please install Ansible manually!${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}Ansible Playbook is starting...${NC}"
+    ansible-playbook setup.yml -K
+}
+
 # Function to set up SSH key
 setup_ssh_key() {
     debug_log "Entering setup_ssh_key function"
@@ -208,6 +228,13 @@ if [ -d "$REPO_PATH" ] && [ "$USE_SSH" = "true" ]; then
     update_repo_url
 else
     echo -e "${YELLOW}Using HTTPS for repository access${NC}"
+fi
+
+if [ -d "$REPO_PATH/ansible" ]; then
+    run_ansible_playbook
+else
+    echo -e "${RED}Error: Ansible Playbook directory does not exist! Please make sure the repository has been successfully cloned. ${NC}"
+    exit 1
 fi
 
 echo -e "${GREEN}Environment setup complete!${NC}"

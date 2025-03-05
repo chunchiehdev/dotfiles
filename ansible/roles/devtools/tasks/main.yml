@@ -1,0 +1,33 @@
+---
+- name: Install developer tools (Debian/Ubuntu)
+  apt:
+    name:
+      - fzf
+      - ripgrep
+      - fd-find
+      - bat
+      - neovim
+      - jq
+    state: present
+  when: is_linux and ansible_os_family == "Debian"
+
+- name: Create bat symlink (Ubuntu uses batcat)
+  file:
+    src: /usr/bin/batcat
+    dest: /usr/local/bin/bat
+    state: link
+    force: yes
+  when: is_linux and ansible_distribution == 'Ubuntu'
+
+- name: Install developer tools (macOS)
+  homebrew:
+    name:
+      - fzf
+      - ripgrep
+      - fd
+      - bat
+      - neovim
+      - jq
+    state: present
+  when: is_macos
+  become: false

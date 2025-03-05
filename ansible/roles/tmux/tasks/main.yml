@@ -1,0 +1,33 @@
+---
+- name: Install tmux (Debian/Ubuntu)
+  apt:
+    name: tmux
+    state: present
+  when: is_linux and ansible_os_family == "Debian"
+
+- name: Install tmux (macOS)
+  homebrew:
+    name: tmux
+    state: present
+  when: is_macos
+  become: false
+
+- name: Install Tmux Plugin Manager (tpm)
+  git:
+    repo: 'https://github.com/tmux-plugins/tpm'
+    dest: "{{ home_dir }}/.tmux/plugins/tpm"
+    clone: yes
+  become: false
+
+- name: Create tmux config symlink
+  file:
+    src: "{{ playbook_dir }}/roles/tmux/files/tmux.conf"
+    dest: "{{ home_dir }}/.tmux.conf"
+    state: link
+    force: yes
+  become: false
+
+- name: Source tmux configuration to load plugins
+  command: tmux source-file {{ home_dir }}/.tmux.conf
+  become: false
+  when: ansible_facts['ansible_distribution'] != 'Darwin'

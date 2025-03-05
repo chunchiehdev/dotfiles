@@ -1,0 +1,21 @@
+---
+- name: Install git (Debian/Ubuntu)
+  apt:
+    name: git
+    state: present
+  when: is_linux and ansible_os_family == "Debian"
+
+- name: Install git (macOS)
+  homebrew:
+    name: git
+    state: present
+  when: is_macos
+  become: false
+
+- name: Create git config symlink
+  file:
+    src: "{{ playbook_dir }}/roles/git/files/.gitconfig"
+    dest: "{{ home_dir }}/.gitconfig"
+    state: link
+    force: yes
+  become: false

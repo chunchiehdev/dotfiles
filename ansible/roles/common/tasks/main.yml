@@ -1,0 +1,26 @@
+---
+- name: Install common packages (Debian/Ubuntu)
+  apt:
+    name:
+      - curl
+      - wget
+      - htop
+      - ncdu
+      - build-essential
+      - python3-pip
+      - unzip
+    state: present
+  when: is_linux and ansible_os_family == "Debian"
+  
+- name: Install common packages (macOS)
+  homebrew:
+    name:
+      - curl
+      - wget
+      - htop
+      - ncdu
+      - python3
+      - unzip
+    state: present
+  when: is_macos
+  become: false

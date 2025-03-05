@@ -1,0 +1,30 @@
+---
+- name: Setup Development Environment
+  hosts: localhost
+  connection: local
+  become: true
+  
+  vars:
+    home_dir: "{{ ansible_env.HOME }}"
+    dotfiles_dir: "{{ ansible_env.HOME }}/dotfiles"
+    is_macos: "{{ ansible_distribution == 'MacOSX' }}"
+    is_linux: "{{ ansible_distribution != 'MacOSX' }}"
+
+  pre_tasks:
+    - name: Update apt cache (Linux)
+      apt:
+        update_cache: yes
+      when: is_linux and ansible_os_family == "Debian"
+      
+    - name: Update homebrew (macOS)
+      command: brew update
+      when: is_macos
+      become: false
+
+  roles:
+    - { role: common, tags: ['common'] }
+    - { role: git, tags: ['git'] }
+    - { role: tmux, tags: ['tmux'] }
+    - { role: docker, tags: ['docker'] }
+    - { role: zsh, tags: ['zsh'] }
+    - { role: devtools, tags: ['devtools'] }
