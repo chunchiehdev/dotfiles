@@ -7,7 +7,6 @@
       - htop
       - ncdu
       - build-essential
-      - python3-pip
       - unzip
     state: present
   when: is_linux and ansible_os_family == "Debian"
@@ -19,7 +18,6 @@
       - wget
       - htop
       - ncdu
-      - python3
       - unzip
     state: present
   when: is_macos
