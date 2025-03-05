@@ -172,11 +172,44 @@ setup_ssh_key() {
         echo -e "${GREEN}5. Paste the key and click 'Add SSH key'${NC}"
         echo -e "${RED}=====================================================${NC}\n"
         
-        # Get confirmation using our helper function
+        # Get confirmation based on mode
         if [ "$AUTO_MODE" = "true" ]; then
             echo -e "${YELLOW}Running in automatic mode. Assuming SSH key will be added later.${NC}"
+            USE_SSH=false
             confirmation="yes"
+        elif [ "$INTERACTIVE" = "false" ]; then
+            # 嘗試重新開啟標準輸入以獲取用戶輸入
+            echo -e "${YELLOW}Attempting to get user input in piped mode...${NC}"
+            
+            # 保存當前的標準輸入
+            exec 3>&0
+            
+            # 嘗試打開終端設備作為標準輸入
+            exec < /dev/tty 2>/dev/null
+            
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}Successfully reopened terminal for input.${NC}"
+                echo -e "${YELLOW}After adding the SSH key to GitHub, type 'yes' and press Enter to continue:${NC}"
+                confirmation=""
+                read -r confirmation
+                
+                # 恢復原來的標準輸入
+                exec 0>&3
+                
+                if [ "$confirmation" = "yes" ]; then
+                    echo -e "${GREEN}Confirmation received. Testing SSH connection...${NC}"
+                    USE_SSH=true
+                else
+                    echo -e "${YELLOW}Invalid confirmation. Using HTTPS instead.${NC}"
+                    USE_SSH=false
+                fi
+            else
+                echo -e "${RED}Cannot reopen terminal for input. Using HTTPS.${NC}"
+                USE_SSH=false
+                confirmation="yes"  # 設置為"yes"以跳過後續的確認循環
+            fi
         else
+            # 正常的交互模式
             confirmation=""
             while [ "$confirmation" != "yes" ]; do
                 confirmation=$(get_confirmation "After adding the key, type 'yes' and press Enter to continue:" "no" "yes")
@@ -184,52 +217,22 @@ setup_ssh_key() {
                     echo -e "${RED}Please type 'yes' to confirm you've added the SSH key:${NC}"
                 fi
             done
+            USE_SSH=true
         fi
         
-        # Test SSH connection
-        USE_SSH=true
-        echo -e "${YELLOW}Testing SSH connection to GitHub...${NC}"
-        if ! ssh -T git@github.com -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=10 2>&1 | grep -q "successfully authenticated"; then
-            echo -e "${RED}SSH connection test failed. This could be due to:${NC}"
-            echo -e "${YELLOW}1. The SSH key hasn't been added to your GitHub account yet${NC}"
-            echo -e "${YELLOW}2. The key hasn't propagated through GitHub's system yet${NC}"
-            echo -e "${YELLOW}3. Network/firewall issues${NC}"
-            
-            if [ "$AUTO_MODE" = "true" ]; then
-                echo -e "${YELLOW}Automatic mode: Will use HTTPS instead of SSH for repository access${NC}"
+        # Test SSH connection if using SSH
+        if [ "$USE_SSH" = "true" ]; then
+            echo -e "${YELLOW}Testing SSH connection to GitHub...${NC}"
+            if ! ssh -T git@github.com -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 2>&1 | grep -q "successfully authenticated"; then
+                echo -e "${RED}SSH connection test failed. Falling back to HTTPS.${NC}"
                 USE_SSH=false
             else
-                retry=$(get_confirmation "Would you like to try again? (yes/no):" "no" "yes no")
-                
-                if [ "$retry" = "yes" ]; then
-                    echo -e "${YELLOW}Testing SSH connection again...${NC}"
-                    if ! ssh -T git@github.com -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 2>&1 | grep -q "successfully authenticated"; then
-                        echo -e "${RED}SSH connection test failed again.${NC}"
-                        proceed=$(get_confirmation "Do you want to continue anyway? This might cause issues with Git operations. Type 'continue' to proceed or anything else to exit:" "exit" "continue exit")
-                        
-                        if [ "$proceed" != "continue" ]; then
-                            echo -e "${RED}Setup cancelled.${NC}"
-                            exit 1
-                        fi
-                        USE_SSH=false
-                    else
-                        echo -e "${GREEN}SSH connection successful!${NC}"
-                    fi
-                else
-                    echo -e "${RED}SSH connection test skipped.${NC}"
-                    proceed=$(get_confirmation "Type 'continue' to proceed or anything else to exit:" "exit" "continue exit")
-                    
-                    if [ "$proceed" != "continue" ]; then
-                        echo -e "${RED}Setup cancelled.${NC}"
-                        exit 1
-                    fi
-                    USE_SSH=false
-                fi
+                echo -e "${GREEN}SSH connection successful!${NC}"
             fi
-        else
-            echo -e "${GREEN}SSH connection successful!${NC}"
         fi
+        
     else
+        # 現有密鑰的處理保持不變
         echo -e "${GREEN}Existing SSH key found${NC}"
         # Ensure ssh-agent is running
         eval "$(ssh-agent -s)"
