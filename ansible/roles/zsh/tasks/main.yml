@@ -3,7 +3,8 @@
   apt:
     name: zsh
     state: present
-  when: is_linux and ansible_os_family == "Debian"
+  when: is_linux and ansible_os_family == "Debian" and not is_wsl
+  become: true
 
 - name: Install zsh (macOS)
   homebrew:
@@ -50,7 +51,7 @@
   user:
     name: "{{ ansible_user_id }}"
     shell: /bin/zsh
-  when: is_linux
+  when: is_linux and not is_wsl
 
 - name: Change default shell to zsh (macOS)
   shell: chsh -s /bin/zsh

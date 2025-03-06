@@ -31,4 +31,4 @@
 - name: Source tmux configuration to load plugins
   command: tmux source-file {{ home_dir }}/.tmux.conf
   become: false
-  when: ansible_facts['ansible_distribution'] != 'Darwin'
+  when: ansible_distribution != 'Darwin'

@@ -28,11 +28,13 @@
           - runc
         state: absent
         purge: yes
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Ensure iptables is used instead of nftables
       shell: update-alternatives --set iptables /usr/sbin/iptables-legacy
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Install prerequisites for Docker repository
       apt:
@@ -40,30 +42,34 @@
           - ca-certificates
           - curl
         state: present
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Create keyrings directory
       file:
         path: /etc/apt/keyrings
         state: directory
         mode: '0755'
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Add Docker GPG key
       shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
       args:
         creates: /etc/apt/keyrings/docker.asc
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Add Docker repository
       apt_repository:
         repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
         filename: docker
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
       vars:
         dpkg_architecture:
           command: dpkg --print-architecture
+      become: true
 
     - name: Install Docker packages
       apt:
@@ -75,14 +81,16 @@
           - docker-compose-plugin
         state: present
         update_cache: yes
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Verify Docker installation
       command: docker run --rm hello-world
       register: docker_test
       changed_when: false
       failed_when: docker_test.rc != 0
-      when: ansible_os_family == "Debian"
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
 
     - name: Add user to docker group
       user:
@@ -92,7 +100,9 @@
       when: 
         - ansible_os_family == "Debian"
         - "'docker' in ansible_facts.groups"
-  when: ansible_os_family == "Debian"
+        - not is_wsl
+      become: true
+  when: ansible_os_family == "Debian" and not is_wsl
 
 - name: Install Docker Desktop (macOS)
   homebrew_cask:

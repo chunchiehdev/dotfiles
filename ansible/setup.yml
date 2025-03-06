@@ -3,18 +3,19 @@
   hosts: localhost
   connection: local
   become: false  
-  
+  gather_facts: true  
   vars:
     home_dir: "{{ ansible_env.HOME }}"
     dotfiles_dir: "{{ ansible_env.HOME }}/dotfiles"
     is_macos: "{{ ansible_distribution == 'MacOSX' }}"
     is_linux: "{{ ansible_distribution != 'MacOSX' }}"
+    is_wsl: "{{ ansible_os_family == 'Debian' and 'microsoft' in ansible_distribution_release | lower }}"
 
   pre_tasks:
     - name: Update apt cache (Linux)
       apt:
         update_cache: yes
-      when: is_linux and ansible_os_family == "Debian"
+      when: is_linux and ansible_os_family == "Debian" and not is_wsl
       become: true  
 
     - name: Update homebrew (macOS)
