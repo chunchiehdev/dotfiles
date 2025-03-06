@@ -40,6 +40,6 @@
     - { role: common, tags: ['common'] }
     - { role: git, tags: ['git'] }
     - { role: tmux, tags: ['tmux'] }
-    - { role: docker, tags: ['docker'] }
     - { role: zsh, tags: ['zsh'] }
+    - { role: docker, tags: ['docker'] }
     - { role: devtools, tags: ['devtools'] }
