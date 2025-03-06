@@ -38,6 +38,13 @@
   become: false
   when: not oh_my_zsh.stat.exists
 
+- name: Install Powerlevel10k theme
+  git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "{{ home_dir }}/.oh-my-zsh/custom/themes/powerlevel10k"
+    depth: 1
+  become: false
+
 - name: Create zsh config symlink if exists
   file:
     src: "{{ playbook_dir }}/roles/zsh/files/.zshrc"  
