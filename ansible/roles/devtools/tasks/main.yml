@@ -10,7 +10,7 @@
       - jq
     state: present
   when: is_linux and ansible_os_family == "Debian"
-
+  become: true
   
 
 - name: Create bat symlink (Ubuntu uses batcat)
