@@ -159,3 +159,10 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
+# BEGIN DOCKER SERVICE AUTOSTART FOR WSL
+# Start Docker service if not running
+if [ -x "$(command -v docker)" ] && ! docker info > /dev/null 2>&1; then
+    echo "Starting Docker service..."
+    sudo service docker start > /dev/null 2>&1
+fi
+# END DOCKER SERVICE AUTOSTART FOR WSL
