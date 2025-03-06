@@ -29,6 +29,6 @@
   become: false
 
 - name: Source tmux configuration to load plugins
-  command: tmux source-file {{ home_dir }}/.tmux.conf
+  shell: tmux new-session -d 'tmux source-file {{ home_dir }}/.tmux.conf; sleep 1'
   become: false
   when: ansible_distribution != 'Darwin'
