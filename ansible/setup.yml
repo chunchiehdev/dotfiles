@@ -11,6 +11,20 @@
     is_linux: "{{ ansible_distribution != 'MacOSX' }}"
 
   pre_tasks:
+    - name: Check if running in WSL
+      shell: grep -q Microsoft /proc/version || grep -q microsoft /proc/version
+      register: wsl_check
+      failed_when: false
+      changed_when : false
+      ignore_errors: yes    
+    
+    - name: Set WSL fact
+      set_fact:
+      is_wsl: "{{ wsl_check.rc == 0 }}"
+
+    - name: Debug WSL detection
+      debug:
+        msg: "Running in WSL: {{ is_wsl }}"          
     - name: Update apt cache (Linux)
       apt:
         update_cache: yes
@@ -22,21 +36,6 @@
       when: is_macos
       become: true
     
-    - name: Check if running in WSL
-      shell: grep -q Microsoft /proc/version || grep -q microsoft /proc/version
-      register: wsl_check
-      failed_when: false
-      changeed_when: false
-      ignore_errors: yes    
-    
-    - name: Set WSL fact
-      set_fact:
-      is_wsl: "{{ wsl_check.rc == 0 }}"
-
-    - name: Debug WSL detection
-      debug:
-      msg: "Running in WSL: {{ is_wsl }}"
-      
   roles:
     - { role: common, tags: ['common'] }
     - { role: git, tags: ['git'] }
