@@ -31,11 +31,40 @@
       when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
-    - name: Ensure iptables is used instead of nftables
-      shell: update-alternatives --set iptables /usr/sbin/iptables-legacy
+    - name: Check if iptables is installed
+      command: dpkg -l iptables
+      register: iptables_installed
+      failed_when: false
+      changed_when: false
       when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
+    - name: Install iptables if not present
+      apt:
+        name: iptables
+        state: present
+      when: 
+        - ansible_os_family == "Debian" 
+        - not is_wsl
+        - iptables_installed.rc != 0
+      become: true
+
+    - name: Check if iptables alternatives exist
+      shell: update-alternatives --display iptables 2>/dev/null || echo "not exists"
+      register: iptables_alternatives
+      failed_when: false
+      changed_when: false
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
+
+    - name: Ensure iptables is used instead of nftables
+      shell: update-alternatives --set iptables /usr/sbin/iptables-legacy
+      when: 
+        - ansible_os_family == "Debian" 
+        - not is_wsl
+        - "'not exists' not in iptables_alternatives.stdout"
+      become: true
+      
     - name: Install prerequisites for Docker repository
       apt:
         name:
@@ -60,15 +89,19 @@
       when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
+    - name: Get system architecture
+      shell: dpkg --print-architecture
+      register: dpkg_architecture
+      changed_when: false
+      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
+
     - name: Add Docker repository
       apt_repository:
         repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
         filename: docker
       when: ansible_os_family == "Debian" and not is_wsl
-      vars:
-        dpkg_architecture:
-          command: dpkg --print-architecture
       become: true
 
     - name: Install Docker packages
