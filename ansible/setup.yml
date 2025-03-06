@@ -20,7 +20,7 @@
     
     - name: Set WSL fact
       set_fact:
-      is_wsl: "{{ wsl_check.rc == 0 }}"
+        is_wsl: "{{ wsl_check.rc == 0 }}"
 
     - name: Debug WSL detection
       debug:
