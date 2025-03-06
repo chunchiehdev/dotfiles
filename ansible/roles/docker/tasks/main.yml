@@ -1,5 +1,5 @@
 ---
-- name: Install Docker (Linux)
+- name: Install Docker (Standard Linux)
   block:
     - name: Check if Ubuntu version is supported
       fail:
@@ -28,7 +28,6 @@
           - runc
         state: absent
         purge: yes
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Check if iptables is installed
@@ -36,17 +35,13 @@
       register: iptables_installed
       failed_when: false
       changed_when: false
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Install iptables if not present
       apt:
         name: iptables
         state: present
-      when: 
-        - ansible_os_family == "Debian" 
-        - not is_wsl
-        - iptables_installed.rc != 0
+      when: iptables_installed.rc != 0
       become: true
 
     - name: Check if iptables alternatives exist
@@ -54,15 +49,11 @@
       register: iptables_alternatives
       failed_when: false
       changed_when: false
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Ensure iptables is used instead of nftables
       shell: update-alternatives --set iptables /usr/sbin/iptables-legacy
-      when: 
-        - ansible_os_family == "Debian" 
-        - not is_wsl
-        - "'not exists' not in iptables_alternatives.stdout"
+      when: "'not exists' not in iptables_alternatives.stdout"
       become: true
       
     - name: Install prerequisites for Docker repository
@@ -71,7 +62,6 @@
           - ca-certificates
           - curl
         state: present
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Create keyrings directory
@@ -79,29 +69,31 @@
         path: /etc/apt/keyrings
         state: directory
         mode: '0755'
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Add Docker GPG key
       shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc && chmod a+r /etc/apt/keyrings/docker.asc
       args:
         creates: /etc/apt/keyrings/docker.asc
-      when: ansible_os_family == "Debian" and not is_wsl
+      become: true
+
+    - name: Get Ubuntu codename
+      shell: . /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+      register: ubuntu_codename
+      changed_when: false
       become: true
 
     - name: Get system architecture
       shell: dpkg --print-architecture
       register: dpkg_architecture
       changed_when: false
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Add Docker repository
       apt_repository:
-        repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: "deb [arch={{ dpkg_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ubuntu_codename.stdout }} stable"
         state: present
         filename: docker
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Install Docker packages
@@ -114,15 +106,6 @@
           - docker-compose-plugin
         state: present
         update_cache: yes
-      when: ansible_os_family == "Debian" and not is_wsl
-      become: true
-
-    - name: Verify Docker installation
-      command: docker run --rm hello-world
-      register: docker_test
-      changed_when: false
-      failed_when: docker_test.rc != 0
-      when: ansible_os_family == "Debian" and not is_wsl
       become: true
 
     - name: Add user to docker group
@@ -130,12 +113,46 @@
         name: "{{ ansible_user_id }}"
         groups: docker
         append: yes
-      when: 
-        - ansible_os_family == "Debian"
-        - "'docker' in ansible_facts.groups"
-        - not is_wsl
       become: true
-  when: ansible_os_family == "Debian" and not is_wsl
+
+    - name: Create docker service startup file for WSL
+      copy:
+        dest: /etc/init.d/docker-wsl-startup
+        content: |
+          #!/bin/sh
+          # Start Docker daemon automatically when WSL starts
+          service docker start
+        mode: '0755'
+      become: true
+      when: is_wsl
+
+    - name: Add Docker service to sudoers for non-password startup
+      lineinfile:
+        path: /etc/sudoers.d/docker-service
+        line: "{{ ansible_user_id }} ALL=(ALL) NOPASSWD: /usr/sbin/service docker start"
+        create: yes
+        mode: 0440
+        validate: 'visudo -cf %s'
+      become: true
+      when: is_wsl
+
+    - name: Add Docker startup to shell profiles
+      blockinfile:
+        path: "{{ item }}"
+        create: "{{ item == home_dir + '/.bashrc' }}"
+        marker: "# {mark} DOCKER SERVICE AUTOSTART FOR WSL"
+        block: |
+          # Start Docker service if not running
+          if [ -x "$(command -v docker)" ] && ! docker info > /dev/null 2>&1; then
+              echo "Starting Docker service..."
+              sudo service docker start > /dev/null 2>&1
+          fi
+      loop:
+        - "{{ home_dir }}/.bashrc"
+        - "{{ home_dir }}/.zshrc"
+      ignore_errors: yes
+      when: is_wsl
+  when: ansible_os_family == "Debian"
 
 - name: Install Docker Desktop (macOS)
   homebrew_cask:
