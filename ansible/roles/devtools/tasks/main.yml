@@ -8,6 +8,8 @@
       - bat
       - neovim
       - jq
+      - tree
+      - tig
     state: present
   when: is_linux and ansible_os_family == "Debian"
   become: true
@@ -31,6 +33,8 @@
       - bat
       - neovim
       - jq
+      - tree
+      - tig
     state: present
   when: is_macos
   become: false
