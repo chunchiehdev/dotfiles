@@ -3,7 +3,7 @@
   apt:
     name: zsh
     state: present
-  when: is_linux and ansible_os_family == "Debian" and not is_wsl
+  when: is_linux and ansible_os_family == "Debian" 
   become: true
 
 - name: Install zsh (macOS)
@@ -52,6 +52,16 @@
     name: "{{ ansible_user_id }}"
     shell: /bin/zsh
   when: is_linux and not is_wsl
+
+- name: Add zsh execution to .bashrc for WSL
+  blockinfile:
+    path: "{{ home_dir }}/.bashrc"
+    marker: "# {mark} AUTOMATIC ZSH EXECUTION"
+    block: |
+      if [ -x "$(command -v zsh)" ] && [ -z "${ZSH_VERSION}" ]; then
+        exec zsh
+      fi
+  when: is_wsl
 
 - name: Change default shell to zsh (macOS)
   shell: chsh -s /bin/zsh
