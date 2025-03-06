@@ -45,7 +45,7 @@
     state: link
     force: yes
   become: false
-  when: (dotfiles_dir + '/zsh/.zshrc') is file
+  when: (playbook_dir + '/roles/zsh/files/.zshrc') is file
 
 - name: Change default shell to zsh
   user:
