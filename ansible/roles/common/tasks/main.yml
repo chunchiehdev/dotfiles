@@ -10,6 +10,7 @@
       - unzip
     state: present
   when: is_linux and ansible_os_family == "Debian"
+  become: true
   
 - name: Install common packages (macOS)
   homebrew:
@@ -21,4 +22,4 @@
       - unzip
     state: present
   when: is_macos
-  become: false
+  become: true
